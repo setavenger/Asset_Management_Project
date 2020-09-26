@@ -4,11 +4,11 @@ from typing import List, Generator, Iterable, Union
 import math
 
 
-def validate_day(date: datetime.datetime, whitelist_day: datetime.datetime):
+def validate_day(date: datetime.datetime, whitelist_days: Iterable[datetime.datetime] = None):
     """
     returns true on a weekend day (non-weekday) else returns false
     30.06.2012 is hardcoded as whitelisted date
-    :param whitelist_day:
+    :param whitelist_days:
     :type date: datetime.datetime
     :param date:
     :return: bool
@@ -17,10 +17,31 @@ def validate_day(date: datetime.datetime, whitelist_day: datetime.datetime):
     day_of_week = date.weekday()
 
     # senior condition hence the prior evaluation
-    if date == whitelist_day:
-        return False
+    if whitelist_days:
+        if date in whitelist_days:
+            return True
 
     if day_of_week == 5 or day_of_week == 6:
+        return False
+
+    return True
+
+
+def validate_eoy(date: datetime.datetime, whitelist_days: Iterable[datetime.datetime] = None):
+    """
+    allows only eoy months (December is approved, other months will be omitted)
+    :param whitelist_days:
+    :type date: datetime.datetime
+    :param date:
+    :return: bool
+    """
+
+    # senior condition hence the prior evaluation
+    if whitelist_days:
+        if date in whitelist_days:
+            return True
+
+    if date.month == 12 and date.day == 31:
         return True
 
     return False

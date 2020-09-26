@@ -30,7 +30,7 @@ for company_index in range(0, 100):
             row += block_height + free_space
             break
 
-        if validate_day(ws.cell(row=row, column=column).value, first_day):  # Todo check: formula was changed untested
+        if not validate_day(ws.cell(row=row, column=column).value, first_day):  # Todo check: formula was changed untested
             deleted_counter += 1
             for i in range(block_height + 1):
                 ws.cell(row=row + i, column=column).value = None
