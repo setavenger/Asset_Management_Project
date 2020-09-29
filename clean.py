@@ -53,5 +53,4 @@ for company_index in range(0, 250):
         column += 1
 
 wb.save('data/Switzerland_vfinal_clean.xlsx')
-
 print('File Saved')
