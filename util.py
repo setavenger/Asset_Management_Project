@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import datetime
 from typing import List, Generator, Iterable, Union
 import math
@@ -114,6 +115,24 @@ def even_groups(n: int, no_groups: int, rank_output: bool = False) -> List[int]:
             for i in range(output[index]):
                 rank_list.append(index+1)
         return rank_list
+
+
+def build_date_list(year: int, df: pd.DataFrame) -> List:
+    check = []
+    months = [7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6]
+    for i in range(len(months)):
+        if i < 6:
+            check.append((year + 1, months[i]))
+        else:
+            check.append((year + 2, months[i]))
+
+    columns_new = []
+
+    for i in df.columns:
+        if (i.year, i.month) in check:
+            columns_new.append(i)
+
+    return columns_new
 
 
 def annually_to_monthly(value: float):

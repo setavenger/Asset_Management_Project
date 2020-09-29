@@ -2,8 +2,7 @@ import openpyxl
 import pandas as pd
 import numpy as np
 import datetime
-from util import try_float_iter, try_float, even_groups
-# from openpyxl.utils.cell import get_column_letter
+from util import try_float_iter, even_groups, build_date_list
 import math
 
 wb = openpyxl.load_workbook('data/Switzerland_vfinal_clean.xlsx')
@@ -14,8 +13,9 @@ ws_total_return = wb['total_returns']  # sheet name
 ws_exclusions = wb['exclusions']  # sheet name
 
 free_space = 1  # empty room between blocks
-years_obv = ['2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020']
-
+# !Hint! : removed 2020 only moving until 2019 Balance Sheet Data
+years_obv = ['2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019']
+risk_factors_all = ['R1', 'R2', 'R3', 'R4', 'R5']
 # days to keep 30.06.2011
 first_day = datetime.datetime(2011, 6, 30)  # 30.06.2011
 
@@ -51,7 +51,7 @@ for company_index in range(0, 203):
     row_tot_return += 2 + free_space  # + x depends on the number of rows inserted
 
 filtered = df_total_returns[~df_total_returns.index.isin(company_blacklist)]
-top_100_tot_returns = filtered.iloc[:100]
+df_total_returns = filtered.iloc[:100]
 
 # !Hint! : balance sheet data from here
 #  plan is to create single dfs per company and concat them via loc
@@ -126,9 +126,10 @@ for company_index in range(0, 203):
 
 df_main_bal = pd.concat(frames, keys=keys)
 
+# !Hint! : only the top 100
+df_main_bal = df_main_bal[:400]  # 100 companies à 4 risks
+keys = keys[:100]
 # !Hint! : from here on the quintiles will be created
-
-
 df_group = pd.DataFrame(columns=years_obv[:-1], index=df_main_bal.index)
 df_percentile = pd.DataFrame(columns=years_obv[:-1], index=df_main_bal.index)
 
@@ -151,7 +152,6 @@ for year in years_obv[:-1]:
         for index in sub_df_group.index:
             df_percentile.loc[index][year] = sub_df_percentile.loc[index]
 
-
 # !Hint! : R5 calculations
 df_r5 = pd.DataFrame(columns=years_obv[:-1])
 for comp in keys:
@@ -164,9 +164,10 @@ for year in df_r5.columns:
     df['percentile'] = df[f'{year}'].rank(pct=True)
     for comp in df.index:
         df_percentile.loc[(comp, 'R5'), year] = df['percentile'].loc[comp]
-        df_percentile = df_percentile.sort_index(level=1)
+        df_percentile = df_percentile.sort_index()
 
 for year in years_obv[:-1]:
+    print(f'R5-{year}')
     df = df_r5[year]
     df = df.sort_values(ascending=True).dropna()
     group = even_groups(len(df), 5, True)
@@ -174,3 +175,28 @@ for year in years_obv[:-1]:
     df_group_r5 = pd.concat([df], keys=['R5']).swaplevel()['group']
     for index in df_group_r5.index:
         df_group.loc[index, year] = df_group_r5.loc[index]
+
+# top_100_tot_returns.to_excel('interim_results/tot_returns.xlsx')
+# df_percentile.to_excel('interim_results/percentiles_all.xlsx')
+# df_group.to_excel('interim_results/groups_all.xlsx')
+
+# !Hint! : create total returns for all quintile portfolios
+
+total_return_dfs = {}
+for year in years_obv[:-1]:
+    columns_new = build_date_list(int(year), df_total_returns)
+    risk_dfs = []
+    for risk in risk_factors_all:
+        rank_dfs = []
+        for rank in range(1, 6):
+            print(f'Total Return {year}--{risk}--{rank}')
+            indices = df_group.xs(risk, level=1)[year][(df_group.xs(risk, level=1)[year] == rank)].index
+            df = df_total_returns.loc[indices][df_total_returns.columns.intersection(columns_new)]
+            rank_dfs.append(df)
+
+        rank_df = pd.concat(rank_dfs, keys=[f'Q-{i}' for i in range(1, 6)])
+        risk_dfs.append(rank_df)
+
+    df_for_year = pd.concat(risk_dfs, keys=risk_factors_all)
+
+    total_return_dfs[year] = df_for_year
