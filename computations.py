@@ -183,15 +183,20 @@ for year in years_obv[:-1]:
 # !Hint! : create total returns for all quintile portfolios
 
 total_return_dfs = {}
+quartiles_only = {}
 for year in years_obv[:-1]:
     columns_new = build_date_list(int(year), df_total_returns)
     risk_dfs = []
+    df_quartiles_only = pd.DataFrame(index=pd.MultiIndex.from_product([risk_factors_all,
+                                                                       [f'Q-{rank}' for rank in range(1, 6)]]),
+                                     columns=columns_new)
     for risk in risk_factors_all:
         rank_dfs = []
         for rank in range(1, 6):
-            print(f'Total Return {year}--{risk}--{rank}')
+            print(f'Total Return {year}--{risk} Q-{rank}')
             indices = df_group.xs(risk, level=1)[year][(df_group.xs(risk, level=1)[year] == rank)].index
             df = df_total_returns.loc[indices][df_total_returns.columns.intersection(columns_new)]
+            df_quartiles_only.loc[risk, f'Q-{rank}'] = df.mean()
             rank_dfs.append(df)
 
         rank_df = pd.concat(rank_dfs, keys=[f'Q-{i}' for i in range(1, 6)])
@@ -200,3 +205,6 @@ for year in years_obv[:-1]:
     df_for_year = pd.concat(risk_dfs, keys=risk_factors_all)
 
     total_return_dfs[year] = df_for_year
+    df_quartiles_only['mean'] = df_quartiles_only.mean(axis=1)
+    df_quartiles_only['std'] = df_quartiles_only.std(axis=1)
+    quartiles_only[year] = df_quartiles_only
