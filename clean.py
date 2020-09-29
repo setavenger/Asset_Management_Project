@@ -2,24 +2,23 @@
 import openpyxl
 from datetime import datetime
 from openpyxl.utils.cell import get_column_letter
-from util import validate_day, validate_eoy
+from util import validate_eoy
 
 
 wb = openpyxl.load_workbook('data/250 Companies.xlsx')
 
 # Todo needs to be checked before running the program
-ws_balance_sheet = wb['balance_sheet_data']   # sheet name
-ws_total_return = wb['total_returns']   # sheet name
-ws_exclusions = wb['exclusions']   # sheet name
+ws_balance_sheet = wb['balance_sheet_data']     # sheet name
+ws_total_return = wb['total_returns']           # sheet name
+ws_exclusions = wb['exclusions']                # sheet name
 
 block_height = 12   # number of rows per ticker
 max_col = 'V'       # last column
 row = 4             # start row (first ticker)
 free_space = 1      # empty room between blocks
+
 # days to keep 30.06.2012
 first_day = datetime(2012, 6, 30)  # 30.06.2012
-
-company_blacklist = ['', '']
 
 for company_index in range(0, 250):
     print()
