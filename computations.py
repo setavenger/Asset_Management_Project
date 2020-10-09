@@ -2,7 +2,7 @@ import openpyxl
 import pandas as pd
 import numpy as np
 import datetime
-from util import try_float_iter, even_groups, build_date_list
+from util import try_float_iter, even_groups, build_date_list, momentum_dates
 import math
 
 wb = openpyxl.load_workbook('data/Switzerland_vfinal_clean.xlsx')
@@ -176,10 +176,6 @@ for year in years_obv[:-1]:
     for index in df_group_r5.index:
         df_group.loc[index, year] = df_group_r5.loc[index]
 
-# top_100_tot_returns.to_excel('interim_results/tot_returns.xlsx')
-# df_percentile.to_excel('interim_results/percentiles_all.xlsx')
-# df_group.to_excel('interim_results/groups_all.xlsx')
-
 # !Hint! : create total returns for all quintile portfolios
 
 total_return_dfs = {}
@@ -208,3 +204,57 @@ for year in years_obv[:-1]:
     df_quartiles_only['mean'] = df_quartiles_only.mean(axis=1)
     df_quartiles_only['std'] = df_quartiles_only.std(axis=1)
     quartiles_only[year] = df_quartiles_only
+
+
+# !Hint! : add R5 to coefficient table
+df_r5_mod = pd.concat([df_r5], keys=['R5']).swaplevel()
+for year in years_obv[:-1]:
+    for index in df_r5_mod.index:
+        print(f"Adding R5 {index} {year}")
+        df_main_bal.loc[index, year] = df_r5_mod.loc[index][year]
+
+df_main_bal = df_main_bal.drop('2019', 1)
+
+df_regression_data_raw = df_main_bal.copy()
+
+# !Hint! : add Momentum 1, 6, 12 and later Book Value
+for year in years_obv[:-1]:
+    columns_momentum_1, columns_momentum_6, columns_momentum_12 = momentum_dates(int(year), df_total_returns)
+    columns_return_year = build_date_list(int(year), df_total_returns)
+
+    momentum_1 = df_total_returns[columns_momentum_1].apply(lambda x: np.exp(x))
+    momentum_1['Momentum 1'] = momentum_1.product(axis=1) - 1
+
+    momentum_6 = df_total_returns[columns_momentum_6].apply(lambda x: np.exp(x))
+    momentum_6['Momentum 6'] = momentum_6.product(axis=1) - 1
+
+    momentum_12 = df_total_returns[columns_momentum_12].apply(lambda x: np.exp(x))
+    momentum_12['Momentum 12'] = momentum_12.product(axis=1) - 1
+
+    return_year = df_total_returns[columns_return_year].apply(lambda x: np.exp(x))
+    return_year['Return Year'] = return_year.product(axis=1) - 1
+
+    for index in df_total_returns.index:
+        print(f"Adding Momentum {index} {year}")
+        df_regression_data_raw.loc[(index, 'Momentum 1'), year] = momentum_1['Momentum 1'].loc[index]
+        df_regression_data_raw.loc[(index, 'Momentum 6'), year] = momentum_6['Momentum 6'].loc[index]
+        df_regression_data_raw.loc[(index, 'Momentum 12'), year] = momentum_12['Momentum 12'].loc[index]
+        df_regression_data_raw.loc[(index, 'Return Year'), year] = return_year['Return Year'].loc[index]
+
+df_regression_data_raw = df_regression_data_raw.sort_index()
+
+cols = ['Momentum 1', 'Momentum 12', 'Momentum 6', 'R1', 'R2', 'R3', 'R4', 'R5', 'Return Year']
+
+df_regression_data = pd.DataFrame(columns=cols)
+
+for year in years_obv[:-1]:
+    for company in keys:
+        print(f'Transposing {year} {company}')
+        row = pd.concat([df_regression_data_raw.loc[company, year].to_frame().transpose()],
+                        keys=[company])
+        df_regression_data = df_regression_data.append(row)
+
+
+# top_100_tot_returns.to_excel('interim_results/tot_returns.xlsx')
+# df_percentile.to_excel('interim_results/percentiles_all.xlsx')
+# df_group.to_excel('interim_results/groups_all.xlsx')

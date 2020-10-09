@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import datetime
-from typing import List, Generator, Iterable, Union
+from typing import List, Tuple, Generator, Iterable, Union
 import math
 
 
@@ -113,27 +113,57 @@ def even_groups(n: int, no_groups: int, rank_output: bool = False) -> List[int]:
         rank_list = []
         for index in range(len(output)):
             for i in range(output[index]):
-                rank_list.append(index+1)
+                rank_list.append(index + 1)
         return rank_list
 
 
 def build_date_list(year: int, df: pd.DataFrame) -> List:
-    check = []
+    approved_dates = []
     months = [7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6]
     for i in range(len(months)):
         if i < 6:
-            check.append((year + 1, months[i]))
+            approved_dates.append((year + 1, months[i]))
         else:
-            check.append((year + 2, months[i]))
+            approved_dates.append((year + 2, months[i]))
 
     columns_new = []
 
     for i in df.columns:
-        if (i.year, i.month) in check:
+        if (i.year, i.month) in approved_dates:
             columns_new.append(i)
 
     return columns_new
 
 
+def momentum_dates(year: int, df: pd.DataFrame) -> Tuple[list, list, list]:
+    momentum_1_approved = []
+    momentum_6_approved = []
+    momentum_12_approved = []
+
+    months = [6, 5, 4, 3, 2, 1, 12, 11, 10, 9, 8, 7]
+    for i in range(len(months)):
+        if i < 1:
+            momentum_1_approved.append((year + 1, months[i]))
+        if i < 6:
+            momentum_6_approved.append((year + 1, months[i]))
+            momentum_12_approved.append((year + 1, months[i]))
+        else:
+            momentum_12_approved.append((year, months[i]))
+
+    columns_momentum_1 = []
+    columns_momentum_6 = []
+    columns_momentum_12 = []
+
+    for i in df.columns:
+        if (i.year, i.month) in momentum_1_approved:
+            columns_momentum_1.append(i)
+        if (i.year, i.month) in momentum_6_approved:
+            columns_momentum_6.append(i)
+        if (i.year, i.month) in momentum_12_approved:
+            columns_momentum_12.append(i)
+
+    return columns_momentum_1, columns_momentum_6, columns_momentum_12
+
+
 def annually_to_monthly(value: float):
-    return (1+value)**(1/12)-1
+    return (1 + value) ** (1 / 12) - 1
