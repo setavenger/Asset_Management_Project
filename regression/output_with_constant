@@ -1,0 +1,31 @@
+                            OLS Regression Results
+==============================================================================
+Dep. Variable:            Return Year   R-squared:                       0.042
+Model:                            OLS   Adj. R-squared:                  0.028
+Method:                 Least Squares   F-statistic:                     2.876
+Date:                Sat, 10 Oct 2020   Prob (F-statistic):            0.00386
+Time:                        00:52:44   Log-Likelihood:                -223.89
+No. Observations:                 529   AIC:                             465.8
+Df Residuals:                     520   BIC:                             504.2
+Df Model:                           8
+Covariance Type:            nonrobust
+===============================================================================
+                  coef    std err          t      P>|t|      [0.025      0.975]
+-------------------------------------------------------------------------------
+const           0.1541      0.060      2.583      0.010       0.037       0.271
+Momentum 1     -0.3687      0.296     -1.248      0.213      -0.949       0.212
+Momentum 12    -0.1106      0.049     -2.240      0.026      -0.208      -0.014
+Momentum 6      0.3967      0.118      3.350      0.001       0.164       0.629
+R1              0.8259      0.388      2.126      0.034       0.063       1.589
+R2              0.0332      0.075      0.444      0.657      -0.114       0.180
+R3              0.0444      0.022      1.976      0.049       0.000       0.088
+R4              0.0012      0.001      1.372      0.171      -0.001       0.003
+R5             -0.1574      0.145     -1.089      0.277      -0.441       0.127
+==============================================================================
+Omnibus:                      640.103   Durbin-Watson:                   1.573
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):           118759.972
+Skew:                           5.485   Prob(JB):                         0.00
+Kurtosis:                      75.579   Cond. No.                         565.
+==============================================================================
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.

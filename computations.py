@@ -4,6 +4,8 @@ import numpy as np
 import datetime
 from util import try_float_iter, even_groups, build_date_list, momentum_dates
 import math
+import statsmodels.api as sm
+
 
 wb = openpyxl.load_workbook('data/Switzerland_vfinal_clean.xlsx')
 
@@ -216,7 +218,7 @@ for year in years_obv[:-1]:
 df_main_bal = df_main_bal.drop('2019', 1)
 
 df_regression_data_raw = df_main_bal.copy()
-
+min_variance_data = pd.DataFrame(columns=pd.MultiIndex.from_product([years_obv[:-1], ['Return Year', 'Std. Dev.']]))
 # !Hint! : add Momentum 1, 6, 12 and later Book Value
 for year in years_obv[:-1]:
     columns_momentum_1, columns_momentum_6, columns_momentum_12 = momentum_dates(int(year), df_total_returns)
@@ -233,6 +235,10 @@ for year in years_obv[:-1]:
 
     return_year = df_total_returns[columns_return_year].apply(lambda x: np.exp(x))
     return_year['Return Year'] = return_year.product(axis=1) - 1
+    return_year['Std. Dev.'] = return_year.std(axis=1)
+
+    min_variance_data[(year, 'Return Year')] = return_year['Return Year']
+    min_variance_data[(year, 'Std. Dev.')] = return_year['Std. Dev.']
 
     for index in df_total_returns.index:
         print(f"Adding Momentum {index} {year}")
@@ -253,6 +259,26 @@ for year in years_obv[:-1]:
         row = pd.concat([df_regression_data_raw.loc[company, year].to_frame().transpose()],
                         keys=[company])
         df_regression_data = df_regression_data.append(row)
+
+columns_min_var_pf = pd.MultiIndex.from_product([years_obv[:-1], ['Company', 'Return Year', 'Std. Dev.']])
+min_variance_portfolio = pd.DataFrame(columns=columns_min_var_pf)
+
+# !Hint! : Regression here
+df_regression_data_clean = df_regression_data.dropna()
+X = df_regression_data_clean.loc[:, :'R5']
+y = df_regression_data_clean['Return Year']
+X = sm.add_constant(X)
+# Note the difference in argument order
+model = sm.OLS(y, X).fit()
+predictions = model.predict(X)  # make the predictions by the model
+
+# Print out the statistics
+print(model.summary())
+# set index to multilevel
+predictions.index = pd.MultiIndex.from_tuples(predictions.index, names=('company', 'year'))
+
+for year in years_obv[:-1]:
+    top_20 = predictions.xs(year, level=1).sort_values(ascending=False)[:20]
 
 
 # top_100_tot_returns.to_excel('interim_results/tot_returns.xlsx')
