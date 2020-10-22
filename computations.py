@@ -5,6 +5,7 @@ import datetime
 from util import try_float_iter, even_groups, build_date_list, momentum_dates
 import math
 import statsmodels.api as sm
+from scipy.optimize import minimize, LinearConstraint
 
 
 wb = openpyxl.load_workbook('data/Switzerland_vfinal_clean.xlsx')
@@ -270,15 +271,73 @@ y = df_regression_data_clean['Return Year']
 X = sm.add_constant(X)
 # Note the difference in argument order
 model = sm.OLS(y, X).fit()
-predictions = model.predict(X)  # make the predictions by the model
+# predictions = model.predict(X)  # make the predictions by the model
+
 
 # Print out the statistics
 print(model.summary())
+
+# !HINT! : only significant values forecast
+pvals = model.pvalues
+pvals_sign = pvals[pvals < 0.05]
+params_sign = model.params.loc[pvals_sign.index]
+predictions = pd.Series(index=X.index, data=np.dot(X[pvals_sign.index].values, params_sign))
+
 # set index to multilevel
 predictions.index = pd.MultiIndex.from_tuples(predictions.index, names=('company', 'year'))
 
+min_variance_portfolio_data = {}
+
 for year in years_obv[:-1]:
-    top_20 = predictions.xs(year, level=1).sort_values(ascending=False)[:20]
+
+    # !Hint! : Preprocessing
+    top_20_expected_return = predictions.xs(year, level=1).sort_values(ascending=False)[:20]
+    top_20_all_data = top_20_expected_return.to_frame('Expected Return').join(min_variance_data[('2018', 'Std. Dev.')])
+    top_20_all_data.columns = ['Expected Return', 'Std. Dev.']
+    cov = df_total_returns.loc[top_20_expected_return.index].T.cov()
+
+    columns = build_date_list(year=int(year), df=df_total_returns)
+    # !Hint! : Optimization procedure
+    w = 20 * [0.05]
+    constraint = LinearConstraint(np.ones(len(w)), lb=1, ub=1)
+
+    return_objective = top_20_expected_return.quantile(0.6)
+
+    def target_return(w):
+        return np.dot([w], np.array([top_20_all_data['Expected Return'].values])[0]) - return_objective
+
+
+    def objective_function(weights, cov):
+        return np.sqrt(np.dot(np.dot(weights, cov), weights.T))
+
+
+    cons = [constraint,
+            {'type': 'eq', 'fun': target_return}]
+
+    bounds = [(0.001, 1) for _ in w]
+    res = minimize(
+        objective_function,
+        x0=[1 / len(w) for _ in w],
+        args=(cov,),
+        constraints=cons,
+        bounds=bounds, )
+
+    pf_weights = res.x
+    top_20_monthly_returns = df_total_returns.loc[top_20_all_data.index][columns]
+    min_variance_portfolio_data[year] = [top_20_monthly_returns, pf_weights]
+
+for key in min_variance_portfolio_data.keys():
+    pf_returns = min_variance_portfolio_data[key][0]
+    pf_weights = min_variance_portfolio_data[key][1]
+
+    # pf_returns.loc['Portfolio'] = np.dot(pf_weights, pf_returns)
+    pf_returns['weights'] = pf_weights
+    pf_returns.loc['Portfolio return ln'] = np.dot(pf_weights, pf_returns)
+
+    pf_returns.loc['Portfolio return'] = pf_returns.loc['Portfolio return ln'].apply(lambda x: np.exp(x))
+
+    pf_returns.loc['Portfolio return ln']['weights'] = np.NaN
+    pf_returns.to_excel(f'results/min_var_portfolio/min_var_{key}.xlsx')
 
 
 # top_100_tot_returns.to_excel('interim_results/tot_returns.xlsx')
