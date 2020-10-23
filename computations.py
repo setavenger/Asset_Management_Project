@@ -7,13 +7,15 @@ import math
 import statsmodels.api as sm
 from scipy.optimize import minimize, LinearConstraint
 
-
 wb = openpyxl.load_workbook('data/Switzerland_vfinal_clean.xlsx')
+wb_ratios = openpyxl.load_workbook('data/Yearly_Monthly_Data.xlsx')
 
 # Todo needs to be checked before running the program
 ws_balance_sheet = wb['balance_sheet_data']  # sheet name
 ws_total_return = wb['total_returns']  # sheet name
 ws_exclusions = wb['exclusions']  # sheet name
+
+ws_yearly = wb_ratios['Yearly']  # sheet name
 
 free_space = 1  # empty room between blocks
 # !Hint! : removed 2020 only moving until 2019 Balance Sheet Data
@@ -67,6 +69,9 @@ frames = []
 keys = []
 row_bal = 4
 
+frames_total = []
+row_ratios = 5
+
 # !Hint! : NESN first year balance ebit missing
 
 for company_index in range(0, 203):
@@ -89,6 +94,7 @@ for company_index in range(0, 203):
         column += 1
 
     df_company = pd.DataFrame(columns=columns_df)
+    df_company_total = pd.DataFrame(columns=columns_df)
 
     # !Hint! : the company risk calculations and df
     projected_benefit_obligation = np.array(list(try_float_iter([ws_balance_sheet.cell(row=row_bal + 2, column=i).value
@@ -110,6 +116,34 @@ for company_index in range(0, 203):
     asset_allocation_stocks = np.array(list(try_float_iter([ws_balance_sheet.cell(row=row_bal + 11, column=i).value
                                                             for i in range(3, 12)])))
 
+    # !HINT! : here come the ratios to add more data to the regression
+    book_equity = np.array(list(try_float_iter([ws_balance_sheet.cell(row=row_ratios + 2, column=i).value
+                                                for i in range(3, 12)])))
+
+    total_assets = np.array(list(try_float_iter([ws_balance_sheet.cell(row=row_ratios + 3, column=i).value
+                                                 for i in range(3, 12)])))
+
+    debt_to_equity = np.array(list(try_float_iter([ws_balance_sheet.cell(row=row_ratios + 4, column=i).value
+                                                   for i in range(3, 12)])))
+
+    sales_rev_turn = np.array(list(try_float_iter([ws_balance_sheet.cell(row=row_ratios + 5, column=i).value
+                                                   for i in range(3, 12)])))
+
+    eps = np.array(list(try_float_iter([ws_balance_sheet.cell(row=row_ratios + 6, column=i).value
+                                        for i in range(3, 12)])))
+
+    dvd_paid = np.array(list(try_float_iter([ws_balance_sheet.cell(row=row_ratios + 7, column=i).value
+                                             for i in range(3, 12)])))
+
+    depr_amort = np.array(list(try_float_iter([ws_balance_sheet.cell(row=row_ratios + 8, column=i).value
+                                               for i in range(3, 12)])))
+
+    net_income = np.array(list(try_float_iter([ws_balance_sheet.cell(row=row_ratios + 9, column=i).value
+                                               for i in range(3, 12)])))
+
+    cash_from_ops = np.array(list(try_float_iter([ws_balance_sheet.cell(row=row_ratios + 10, column=i).value
+                                                  for i in range(3, 12)])))
+
     pension_deficit = projected_benefit_obligation - fair_value_plan_assets
 
     r1 = pension_deficit / market_cap
@@ -124,14 +158,42 @@ for company_index in range(0, 203):
 
     frames.append(df_company)
 
+    df_company_total.loc['R1'] = r1[:len(columns_df)]
+    df_company_total.loc['R2'] = r2[:len(columns_df)]
+    df_company_total.loc['R3'] = r3[:len(columns_df)]
+    df_company_total.loc['R4'] = r4[:len(columns_df)]
+
+    # !HINT! : calculate ratios
+
+    market_to_book = market_cap / book_equity
+    cash_to_dvd = cash_from_ops / dvd_paid
+    pay_out_ratio = dvd_paid / eps
+
+    # market_to_book = np.append(market_to_book[:len(columns_df)], np.NaN)
+    # cash_to_dvd = np.append(cash_to_dvd[:len(columns_df)], np.NaN)
+    # pay_out_ratio = np.append(pay_out_ratio[:len(columns_df)], np.NaN)
+    # debt_to_equity = np.append(debt_to_equity[:len(columns_df)], np.NaN)
+
+    df_company_total.loc['market_to_book'] = market_to_book[:len(columns_df)]
+    # df_company_total.loc['cash_to_dvd'] = cash_to_dvd[:len(columns_df)]
+    df_company_total.loc['pay_out_ratio'] = pay_out_ratio[:len(columns_df)]
+    df_company_total.loc['debt_to_equity'] = debt_to_equity[:len(columns_df)]
+
+    frames_total.append(df_company_total)
     # move to next company
     row_bal += 12 + free_space  # + x depends on the number of rows inserted
+    row_ratios += 10 + free_space  # + x depends on the number of rows inserted
 
+# !HINT! : ratios are added to a new df which will be maintained in parallel because I am unsure of the exact
+#  usages of main_bal and whether additional vars ould interfere with existing working processes
 df_main_bal = pd.concat(frames, keys=keys)
+df_main_bal_total = pd.concat(frames_total, keys=keys)
 
 # !Hint! : only the top 100
-df_main_bal = df_main_bal[:400]  # 100 companies à 4 risks
 keys = keys[:100]
+df_main_bal = df_main_bal.loc[keys]  # 100 companies à 4 risks
+df_main_bal_total = df_main_bal_total.loc[keys]
+
 # !Hint! : from here on the quintiles will be created
 df_group = pd.DataFrame(columns=years_obv[:-1], index=df_main_bal.index)
 df_percentile = pd.DataFrame(columns=years_obv[:-1], index=df_main_bal.index)
@@ -208,15 +270,16 @@ for year in years_obv[:-1]:
     df_quartiles_only['std'] = df_quartiles_only.std(axis=1)
     quartiles_only[year] = df_quartiles_only
 
-
 # !Hint! : add R5 to coefficient table
 df_r5_mod = pd.concat([df_r5], keys=['R5']).swaplevel()
 for year in years_obv[:-1]:
     for index in df_r5_mod.index:
         print(f"Adding R5 {index} {year}")
         df_main_bal.loc[index, year] = df_r5_mod.loc[index][year]
+        df_main_bal_total.loc[index, year] = df_r5_mod.loc[index][year]
 
 df_main_bal = df_main_bal.drop('2019', 1)
+df_main_bal_total = df_main_bal_total.drop('2019', 1)
 
 df_regression_data_raw = df_main_bal.copy()
 min_variance_data = pd.DataFrame(columns=pd.MultiIndex.from_product([years_obv[:-1], ['Return Year', 'Std. Dev.']]))
@@ -250,8 +313,8 @@ for year in years_obv[:-1]:
 
 df_regression_data_raw = df_regression_data_raw.sort_index()
 
-cols = ['Momentum 1', 'Momentum 12', 'Momentum 6', 'R1', 'R2', 'R3', 'R4', 'R5', 'Return Year']
-
+# cols = ['Momentum 1', 'Momentum 12', 'Momentum 6', 'R1', 'R2', 'R3', 'R4', 'R5', 'Return Year']
+cols = sorted(list(set(df_regression_data_raw.index.get_level_values(level=1))))
 df_regression_data = pd.DataFrame(columns=cols)
 
 for year in years_obv[:-1]:
@@ -266,8 +329,8 @@ min_variance_portfolio = pd.DataFrame(columns=columns_min_var_pf)
 
 # !Hint! : Regression here
 df_regression_data_clean = df_regression_data.dropna()
-X = df_regression_data_clean.loc[:, :'R5']
 y = df_regression_data_clean['Return Year']
+X = df_regression_data_clean.drop('Return Year', axis=1)
 X = sm.add_constant(X)
 # Note the difference in argument order
 model = sm.OLS(y, X).fit()
@@ -289,7 +352,6 @@ predictions.index = pd.MultiIndex.from_tuples(predictions.index, names=('company
 min_variance_portfolio_data = {}
 
 for year in years_obv[:-1]:
-
     # !Hint! : Preprocessing
     top_20_expected_return = predictions.xs(year, level=1).sort_values(ascending=False)[:20]
     top_20_all_data = top_20_expected_return.to_frame('Expected Return').join(min_variance_data[('2018', 'Std. Dev.')])
@@ -302,6 +364,7 @@ for year in years_obv[:-1]:
     constraint = LinearConstraint(np.ones(len(w)), lb=1, ub=1)
 
     return_objective = top_20_expected_return.quantile(0.6)
+
 
     def target_return(w):
         return np.dot([w], np.array([top_20_all_data['Expected Return'].values])[0]) - return_objective
@@ -338,7 +401,6 @@ for key in min_variance_portfolio_data.keys():
 
     pf_returns.loc['Portfolio return ln']['weights'] = np.NaN
     pf_returns.to_excel(f'results/min_var_portfolio/min_var_{key}.xlsx')
-
 
 # top_100_tot_returns.to_excel('interim_results/tot_returns.xlsx')
 # df_percentile.to_excel('interim_results/percentiles_all.xlsx')
