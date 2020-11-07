@@ -1,5 +1,5 @@
 import pandas as pd
-import matplotlib as mpl
+# import matplotlib as mpl
 import matplotlib.pyplot as plt
 import datetime
 
@@ -35,8 +35,6 @@ t = df.index
 x = df['Portfolio Total Return (0 -> t)'].values
 y = df['Benchmark Total Return (0 -> t)'].values
 z = df['Difference Monthly Return'].values
-
-mpl.rcParams['font.serif'] = 'Times New Roman'
 
 fig, axs = plt.subplots(2, 1, figsize=(20, 8), dpi=300, gridspec_kw={'height_ratios': [5, 2]})
 

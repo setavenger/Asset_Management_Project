@@ -358,7 +358,7 @@ for year in years_obv[:-1]:
     w = 20 * [0.05]
     constraint = LinearConstraint(np.ones(len(w)), lb=1, ub=1)
 
-    return_objective = top_20_expected_return.quantile(0.6)
+    return_objective = top_20_expected_return.quantile(0.3)
 
 
     def target_return(w):
