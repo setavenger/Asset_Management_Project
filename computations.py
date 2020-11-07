@@ -282,7 +282,7 @@ df_main_bal = df_main_bal.drop('2019', 1)
 df_main_bal_total = df_main_bal_total.drop('2019', 1)
 
 df_regression_data_raw = df_main_bal.copy()
-min_variance_data = pd.DataFrame(columns=pd.MultiIndex.from_product([years_obv[:-1], ['Return Year', 'Std. Dev.']]))
+min_variance_data = pd.DataFrame(columns=pd.MultiIndex.from_product([years_obv[:-1], ['Std. Dev.']]))
 # !Hint! : add Momentum 1, 6, 12 and later Book Value
 for year in years_obv[:-1]:
     columns_momentum_1, columns_momentum_6, columns_momentum_12 = momentum_dates(int(year), df_total_returns)
@@ -299,10 +299,8 @@ for year in years_obv[:-1]:
 
     return_year = df_total_returns[columns_return_year].apply(lambda x: np.exp(x))
     return_year['Return Year'] = return_year.product(axis=1) - 1
-    return_year['Std. Dev.'] = return_year.std(axis=1)
 
-    min_variance_data[(year, 'Return Year')] = return_year['Return Year']
-    min_variance_data[(year, 'Std. Dev.')] = return_year['Std. Dev.']
+    min_variance_data[(year, 'Std. Dev.')] = df_total_returns[columns_momentum_12].std(axis=1)
 
     for index in df_total_returns.index:
         print(f"Adding Momentum {index} {year}")
@@ -323,9 +321,6 @@ for year in years_obv[:-1]:
         row = pd.concat([df_regression_data_raw.loc[company, year].to_frame().transpose()],
                         keys=[company])
         df_regression_data = df_regression_data.append(row)
-
-columns_min_var_pf = pd.MultiIndex.from_product([years_obv[:-1], ['Company', 'Return Year', 'Std. Dev.']])
-min_variance_portfolio = pd.DataFrame(columns=columns_min_var_pf)
 
 # !Hint! : Regression here
 df_regression_data_clean = df_regression_data.dropna()
@@ -354,7 +349,7 @@ min_variance_portfolio_data = {}
 for year in years_obv[:-1]:
     # !Hint! : Preprocessing
     top_20_expected_return = predictions.xs(year, level=1).sort_values(ascending=False)[:20]
-    top_20_all_data = top_20_expected_return.to_frame('Expected Return').join(min_variance_data[('2018', 'Std. Dev.')])
+    top_20_all_data = top_20_expected_return.to_frame('Expected Return').join(min_variance_data[(year, 'Std. Dev.')])
     top_20_all_data.columns = ['Expected Return', 'Std. Dev.']
     cov = df_total_returns.loc[top_20_expected_return.index].T.cov()
 
@@ -377,7 +372,7 @@ for year in years_obv[:-1]:
     cons = [constraint,
             {'type': 'eq', 'fun': target_return}]
 
-    bounds = [(0.001, 1) for _ in w]
+    bounds = [(0.001, .15) for _ in w]
     res = minimize(
         objective_function,
         x0=[1 / len(w) for _ in w],
@@ -388,6 +383,7 @@ for year in years_obv[:-1]:
     pf_weights = res.x
     top_20_monthly_returns = df_total_returns.loc[top_20_all_data.index][columns]
     min_variance_portfolio_data[year] = [top_20_monthly_returns, pf_weights]
+
 
 for key in min_variance_portfolio_data.keys():
     pf_returns = min_variance_portfolio_data[key][0]
@@ -400,7 +396,9 @@ for key in min_variance_portfolio_data.keys():
     pf_returns.loc['Portfolio return'] = pf_returns.loc['Portfolio return ln'].apply(lambda x: np.exp(x))
 
     pf_returns.loc['Portfolio return ln']['weights'] = np.NaN
-    pf_returns.to_excel(f'results/min_var_portfolio/min_var_{key}.xlsx')
+    pf_returns.loc['Portfolio return']['weights'] = np.NaN
+
+    # pf_returns.to_excel(f'results/min_var_portfolio/min_var_{key}.xlsx')  # todo uncomment to save results to excel
 
 # top_100_tot_returns.to_excel('interim_results/tot_returns.xlsx')
 # df_percentile.to_excel('interim_results/percentiles_all.xlsx')

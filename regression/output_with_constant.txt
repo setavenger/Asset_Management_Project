@@ -3,8 +3,8 @@
 Dep. Variable:            Return Year   R-squared:                       0.042
 Model:                            OLS   Adj. R-squared:                  0.028
 Method:                 Least Squares   F-statistic:                     2.876
-Date:                Sat, 10 Oct 2020   Prob (F-statistic):            0.00386
-Time:                        00:52:44   Log-Likelihood:                -223.89
+Date:                Sun, 01 Nov 2020   Prob (F-statistic):            0.00386
+Time:                        12:48:36   Log-Likelihood:                -223.89
 No. Observations:                 529   AIC:                             465.8
 Df Residuals:                     520   BIC:                             504.2
 Df Model:                           8
