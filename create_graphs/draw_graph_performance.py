@@ -7,7 +7,7 @@ rc = {'figure.figsize': (10, 5),
       'axes.facecolor': 'white',
       'axes.grid': True,
       'grid.color': '.8',
-      'font.family': 'Times New Roman',
+      'font.family': 'Arial Narrow',
       'font.size': 15}
 
 plt.rcParams.update(rc)
@@ -76,8 +76,8 @@ ax2.yaxis.grid()
 plt.subplots_adjust(left=0.05, right=0.95)
 
 # todo uncomment to save to respective file_types
-# plt.savefig('graphs/performance_overview.eps')
-# plt.savefig('graphs/performance_overview.png')
-# plt.savefig('graphs/performance_overview.pdf')
+plt.savefig('graphs_presentation_arial_narrow/performance_overview.eps')
+# plt.savefig('graphs_presentation_arial_narrow/performance_overview.png')
+# plt.savefig('graphs_presentation_arial_narrow/performance_overview.pdf')
 
 plt.show()

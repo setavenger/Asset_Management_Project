@@ -8,11 +8,12 @@ import numpy as np
 
 df = pd.read_excel('data/R1_5_results_only.xlsx')
 
+
 rc = {'figure.figsize': (10, 5),
       'axes.facecolor': 'white',
       'axes.grid': True,
       'grid.color': '.8',
-      'font.family': 'Times New Roman',
+      'font.family': 'Arial Narrow',
       'font.size': 15}
 
 plt.rcParams.update(rc)
@@ -37,8 +38,8 @@ plt.subplots_adjust(left=0.1, right=0.95)
 
 #
 # todo uncomment to save to respective file_types
-plt.savefig('graphs/R1_5_performance_single.eps', dpi=300)
-plt.savefig('graphs/R1_5_performance_single.png', dpi=300)
-plt.savefig('graphs/R1_5_performance_single.pdf', dpi=300)
+plt.savefig('graphs_presentation_arial_narrow/R1_5_performance_single.eps', dpi=300)
+# plt.savefig('graphs/R1_5_performance_single.png', dpi=300)
+# plt.savefig('graphs/R1_5_performance_single.pdf', dpi=300)
 
 plt.show()

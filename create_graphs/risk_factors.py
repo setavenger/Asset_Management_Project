@@ -12,7 +12,7 @@ rc = {'figure.figsize': (10, 5),
       'axes.facecolor': 'white',
       'axes.grid': True,
       'grid.color': '.8',
-      'font.family': 'Times New Roman',
+      'font.family': 'Arial Narrow',
       'font.size': 15}
 
 plt.rcParams.update(rc)
@@ -47,7 +47,7 @@ plt.subplots_adjust(left=0.05, right=0.95)
 
 #
 # todo uncomment to save to respective file_types
-# plt.savefig('graphs/R1_5_sharpe_ratio_v2.eps', dpi=300)
+plt.savefig('graphs_presentation_arial_narrow/R1_5_sharpe_ratio_v2.eps', dpi=300)
 # plt.savefig('graphs/R1_5_sharpe_ratio_v2.png', dpi=300)
 # plt.savefig('graphs/R1_5_sharpe_ratio_v2.pdf', dpi=300)
 

@@ -8,7 +8,7 @@ rc = {'figure.figsize': (10, 5),
       'axes.facecolor': 'white',
       'axes.grid': True,
       'grid.color': '.8',
-      'font.family': 'Times New Roman',
+      'font.family': 'Arial Narrow',
       'font.size': 15}
 
 plt.rcParams.update(rc)
@@ -31,4 +31,9 @@ normalized = risk_developments.T / risk_developments.T.iloc[-1, :]
 normalized = normalized.iloc[::-1]
 # normalized.xs('MEAN', level=0, axis=1).drop('R3', axis=1).plot()
 normalized.xs('MEDIAN', level=0, axis=1).plot()
+
+plt.savefig('graphs_presentation_arial_narrow/risk_factors_yearly_development.eps')
+# plt.savefig('graphs/risk_factors_yearly_development.png')
+# plt.savefig('graphs/risk_factors_yearly_development.pdf')
+
 plt.show()
